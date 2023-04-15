@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, type Ref } from "vue";
 import type { Message } from './interfaces/Message';
-import { Configuration, OpenAIApi } from "openai";
+import { ChatCompletionRequestMessage, Configuration, OpenAIApi } from "openai";
 
 const messages: Ref<Message[]> = ref([]);
 const inputPrompt = ref("");
@@ -16,6 +16,13 @@ const openai = new OpenAIApi(configuration);
  * 送信
  */
 const onSend = async () => {
+  const msgs = messages.value.map(m => {
+    return {
+      role: m.speaker === "user" ? "user" : "assistant",
+      content: m.text,
+    }
+  }) as ChatCompletionRequestMessage[];
+
   const text = inputPrompt.value;
   inputPrompt.value = "";
   messages.value.push({ speaker: "user", text });
@@ -23,7 +30,7 @@ const onSend = async () => {
   try {
     const response = await openai.createChatCompletion({
       model: "gpt-3.5-turbo-0301",
-      messages: [{ role: "user", content: text }],
+      messages: [...msgs, { role: "user", content: text }],
     });
     messages.value.push({ speaker: "bot", text: response.data.choices[0].message?.content ?? "Invalid content." })
   } catch (error) {
